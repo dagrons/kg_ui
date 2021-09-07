@@ -18,6 +18,25 @@ const COLOR_SET = [
 const graph = createGraph();
 graph.query(MALWARE_ID);
 
+// 为按钮绑定动作
+const currentButton = document.querySelector('#current-button');
+const ipButton = document.querySelector('#ip-button');
+const mailButton = document.querySelector('#mail-button');
+const urlButton = document.querySelector('#url-button');
+
+currentButton.addEventListener('click', e=> {  
+  graph.query(MALWARE_ID);
+})
+ipButton.addEventListener('click', e => {
+  graph.query("", mode=1);
+});
+mailButton.addEventListener('click', e=> {
+  graph.query('', mode=2);
+})
+urlButton.addEventListener('click', e=>{
+  graph.query('', mode=3);
+})
+
 function createG6Ins() {
   // create a g6 instance
   const graph = new G6.Graph({
@@ -89,13 +108,24 @@ function createGraph() {
   // graph: g6(I) + query(M)
   // anonymous function: create the graph instance
   // factory pattern
+  // 工厂模式，为g6ins绑定了query方法再返回
+  // query方法用于neo4j询问
   const g6ins = createG6Ins();
-  g6ins.query = async (para) => {
+  g6ins.query = async (param, mode=0) => {
     // fetch data and render graph
-    const q =
+    let q = "";
+    if (mode == 0) {
+      q =
       'MATCH p=(n{name:"' +
-      para +
-      '"})-[r:URL|Mail|IP]-(m) RETURN n,labels(n),r,type(r),m,labels(m) LIMIT 100';
+      param +
+      '"})-[r:URL|Mail|IP]-(m) RETURN n,labels(n),r,type(r),m,labels(m) LIMIT 100';    
+    } else if (mode == 1) {
+      q = 'MATCH p=(n)-[r:IP]-(m) RETURN n,labels(n),r,type(r),m,labels(m) LIMIT 50';
+    } else if (mode == 2) {
+      q = 'MATCH p=(n)-[r:Mail]-(m) RETURN n,labels(n),r,type(r),m,labels(m) LIMIT 50';
+    } else {
+      q = 'MATCH p=(n)-[r:URL]-(m) RETURN n,labels(n),r,type(r),m,labels(m) LIMIT 50';
+    }
     const res = await axios.get(`${URL}?query=${q}`);
     const data = transform(res);
     setStyle(data);
@@ -129,11 +159,11 @@ function createGraph() {
       });
     }
 
-    function transform(res) {
+    function transform(res) {      
       // transform from res to G6 data
       // 格式转换, 从neo4j的返回数据格式映射到G6需要的数据格式
       nodes = [];
-      edges = [];
+      edges = [];    
 
       const records = res.data.records;
 
@@ -141,25 +171,43 @@ function createGraph() {
         alert("该恶意样本无关联特征");
       }
 
-      const subject = {
-        id: "0",
-        label: records[0]._fields[0].properties.name,
-        type: records[0]._fields[1][0],
-      };
-      nodes.push(subject);
-
+      // 找到所有节点
+      let st = {};
+      let cnt = 0;
+      let mp = {};
       for (let i = 0; i < records.length; i++) {
-        let j = i + 1;
-        edges.push({
-          source: "0",
-          target: j.toString(),
-          label: records[i]._fields[3],
-        });
+        let record = records[i];
+        if (st[record._fields[0].properties.name]) continue;
+        st[record._fields[0].properties.name] = true;
         nodes.push({
-          id: j.toString(),
-          label: records[i]._fields[4].properties.name,
-          type: records[i]._fields[5][0],
-        });
+          id: cnt.toString(),
+          label: record._fields[0].properties.name,
+          type: records[i]._fields[1][0],    
+        })
+        mp[record._fields[0].properties.name] = cnt;
+        cnt++;
+      }
+      for (let i = 0; i < records.length; i++) {
+        let record = records[i];
+        if (st[record._fields[4].properties.name]) continue;
+        st[record._fields[4].properties.name] = true;
+        nodes.push({
+          id: cnt.toString(),
+          label: record._fields[4].properties.name,
+          type: records[i]._fields[5][0],    
+        })
+        mp[record._fields[4].properties.name] = cnt;
+        cnt++;
+      }
+
+      // 找到所有边    
+      for (let i = 0; i < records.length; i++) {
+        let record = records[i];                
+        edges.push({
+          source: mp[record._fields[0].properties.name].toString(),
+          target: mp[record._fields[4].properties.name].toString(),
+          label: record._fields[5][0]
+        })        
       }
 
       return {
