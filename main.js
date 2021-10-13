@@ -1,6 +1,8 @@
 const URL = new URLSearchParams(window.location.search).get("url"); // kg backend url
 const MALWARE_ID = new URLSearchParams(window.location.search).get("name");
 
+// add nonsense
+
 const COLOR_SET = [
   "#dd6b66",
   "#759aa0",
