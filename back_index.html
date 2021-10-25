@@ -1,0 +1,231 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport"
+          content="width=device-width,initial-scale=1.0,maximum-scale=1.0,minimum-scale=1.0,user-scalable=no">
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+    <title>知识图谱</title>
+
+    <style type="text/css">
+        html {
+            height: 100%;
+        }
+
+        body {
+            height: 100%;
+            margin: 0;
+        }
+        canvas {
+            height: 100%;
+            background: #FFFFFF
+        }
+        #property {
+            width: 94%;
+            height: 29%;
+            top: 64%;
+            position: absolute;
+        }
+
+        #banner {
+            color: #434343;
+            width: 100%;
+            /*background: #0d1c25;顶部颜色*/
+            height: 8%;
+            display: block;
+            opacity: 0.85;
+        }
+        .link {
+            margin-top: 0.125rem;
+            display: inline-block;
+            right: -70%;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .link button {
+            font-size: 0.2rem;
+            padding: 0.125rem 0.1rem; /*设置表面button的大小*/
+            border: 0.025rem solid transparent;
+            /*background-color: #0d1c25;*/
+        }
+
+        .entity_btn,
+        .rela_btn,
+        .banner_btn {
+            width: 30%;
+            border-radius: 0.0625rem;
+            /*color: #efefef;更改为灰色*/
+            color: #666666;
+            padding: 0.1rem 0.25rem;
+            margin: 0.1rem 0.0625rem;
+            /*background-color: #0b2838;*/
+            text-decoration: none;
+            border: 0.025rem solid transparent;
+            cursor: pointer
+        }
+
+        .banner_btn {
+            width: 1.5rem;
+            display: inline-block;
+            font-weight: bolder;
+        }
+    /*添加侧边栏布局*/
+        #chart {
+            height: 40%;
+        }
+
+        .sidebar {
+            padding-left: 1%;
+            color: #434343;
+            width: 24%;
+            position: absolute;
+            left: 0;
+            top: 8%;
+            height: 92%;
+            transition: all 0.2s ease 0s;
+            /*background-color: #0b2838;*/
+        }
+
+        .sidebar ul {
+            font-size: small;
+        }
+        #chartmain {
+            height: 100%;
+            width: 100%;
+        }
+
+        .tagcloud {
+            height: 100%;
+            /* width: 100%; */
+            margin: auto;
+        }
+        #relation {
+            top: 46%;
+            position: absolute;
+        }
+        .selected {
+            margin: 0.125rem;
+            border-color: #eee !important;
+            /* background-color: "#eee"; */
+        }
+
+        .right .chart_num {
+            padding: 0 0 0 10%;
+        }
+
+        .right {
+            position: absolute;
+            right: 0%;
+        }
+
+        .left,
+        .right,
+        .tagcloud {
+            float: left;
+            width: 30%;
+        }
+
+        .chart_num {
+            padding: 0 10%;
+            height: 20em;
+            width: 70%;
+            margin-bottom: 15%;
+        }
+
+
+
+
+
+        #proul {
+            height: 100%;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        #proul::-webkit-scrollbar {
+            width: 0.05rem;
+            /*height: 4px;*/
+        }
+
+        #proul::-webkit-scrollbar-thumb {
+            border-radius: 0.125rem;
+            -webkit-box-shadow: inset 0 0 0.0625rem rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        #proul::-webkit-scrollbar-track {
+            -webkit-box-shadow: inset 0 0 0.0625rem rgba(255, 255, 255, 0.9);
+            border-radius: 0;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .autocomplete-suggestions strong {
+            font-weight: bold;
+            color: #000;
+        }
+
+        .autocomplete-group {
+            padding: 0.025rem 0.0625rem;
+        }
+
+        .autocomplete-group strong {
+            font-weight: bold;
+            font-size: 0.2rem;
+            color: #000;
+            display: block;
+            border-bottom: 0.0125rem solid #000;
+        }
+
+
+
+        /*侧边栏布局结束*/
+
+    </style>
+</head>
+
+
+<body class="big-page" onselectstart="return false">
+<script type="text/javascript" src="js/src/jquery-1.8.2.min.js"></script>
+<script type="text/javascript" src="js/src/g6.min.js"></script>
+<script type="text/javascript" src="js/src/axios.min.js"></script>
+<script type="text/javascript" src="js/src/jquery.autocomplete.js"></script>
+<script type="text/javascript" src="js/src/TagCloud.min.js"></script>
+<script type="text/javascript" src="js/src/echarts.min.js"></script>
+<script type="text/javascript" src="js/src/echarts.theme.js"></script>
+<script type="text/javascript" src="js/src/flexible.js"></script>
+
+<div id="banner">
+    <div class="link">
+        <button class="banner_btn" id="current-button">当前节点</button>
+        <button class="banner_btn" id="ip-button">IP关系概览</button>
+        <button class="banner_btn" id="mail-button">Mail关系概览</button>
+        <button  class="banner_btn"id="url-button">URL关系概览</button>
+    </div>
+</div>
+<!--添加侧边栏信息-->
+<div id='slider' class="sidebar">
+    <div id='chart'>
+        <h3>恶意代码关联分析字段分布统计</h3>
+        <div id="chartmain"></div>
+    </div>
+    <div id='relation'>
+        <h3>恶意代码关联字段统计图谱展示</h3>
+    </div>
+
+    <div id="selection"></div>
+    <div id="property">
+        <h3>当前属性</h3>
+        <div id="proul">
+
+        </div>
+    </div>
+</div>
+<!--结束侧边栏设置-->
+
+<div id="mountNode" class="show"></div>
+
+<script type="text/javascript" src="./main.js"></script>
+</body>
+
+</html>

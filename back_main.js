@@ -1,5 +1,8 @@
 const URL = new URLSearchParams(window.location.search).get("url"); // kg backend url
 const MALWARE_ID = new URLSearchParams(window.location.search).get("name");
+console.log("////////////////")
+console.log("URL:", URL)
+console.log("MALWARE_ID:", MALWARE_ID)
 // G6s设置
 
 const COLOR_SET = [
@@ -12,23 +15,43 @@ const COLOR_SET = [
   "#73a373",
   "#73b9bc",
   "#7289ab",
-  "#91ca8c",
+  "#91ca8c",-
   "#f49f42",
 ];
 
 
 const graph = createGraph();
 graph.query(MALWARE_ID);
-
-
 //添加侧边栏动作
-//侧边栏图标
+
 window.onload = async function() {
+
+  const group_Teams = await getData('MATCH (n:`Malware`) RETURN n.`name`');
+  const weapon_Teams = await getData('MATCH (n:`IP`) RETURN n.`name`');
+
+  var g = $.map(group_Teams, function(team) {
+    return {
+      value: team,
+      data: {
+        category: 'Malware'
+      }
+    };
+  });
+  var w = $.map(weapon_Teams, function(team) {
+    return {
+      value: team,
+      data: {
+        category: 'IP'
+      }
+    };
+  });
+  var teams = g.concat(w);
+
   const statistics = await getData('MATCH (n) RETURN distinct labels(n), count(n)');
   var stat_data = [];
   for (var i in statistics) {
-    var name = statistics[i]._fields[0][0]
-    var value = statistics[i]._fields[1].low
+    var name = statistics[i][0].filter((x) => x !== '')[0]
+    var value = statistics[i][1]
     if (name != '外部引用')
       stat_data.push({
         name,
@@ -56,39 +79,40 @@ window.onload = async function() {
       }
     }]
   };
-
   var myChart = echarts.init(document.getElementById('chartmain'), 'dark');
 
   //使用制定的配置项和数据显示图表
   myChart.setOption(chart_option);
 
 };
-
 async function getFromNeo4j(para) {
+
   return await axios.get(`${URL}/all?query=${para}`)
 }
-
 async function getData(para) {
   let neo4jData = await getFromNeo4j(para);
-  return neo4jData.data.records
-}
-//展示图谱字段
+  // console.log(Teams.data.data);
+  return neo4jData.data.data
 
-$(function() {
-  const entity_list = ['IP', 'Mail', 'URL', 'Malware', 'DLL']; //neo4j中的实体
+  // return group_Teams
+}
+
+
+$(function() {  //展示图谱 ，传入名字参数
+  const entity_list = ['IP', 'DLL', 'Mail', 'URL', 'Malware']; //neo4j中的实体
   for (let entity in entity_list) {
-    $('#entity').append('<button class=' + "entity_btn" + ' onclick="graph.query(this,mode=4)">' + entity_list[entity] + '</button>')
+    $('#entity').append('<button class=' + "entity_btn" + ' onclick="graph.query(this,4)">' + entity_list[entity] + '</button>')
   }
 
-  const rela_list = ['Mail', 'IP', 'URL', 'Malware', 'DLL'];
+  const rela_list = ['Mail','DLL', 'IP', 'URL', 'Malware'];
   for (let relation in rela_list) {
-    $('#relation').append('<button class=' + "rela_btn" + ' onclick="graph.query(this,mode=5)" >' + rela_list[relation] + '</button>') //neo4j中的关系
+    $('#relation').append('<button class=' + "rela_btn" + ' onclick="graph.query(this,5)" >' + rela_list[relation] + '</button>') //neo4j中的关系
   }
 });
 
-
-
 //结束侧边栏动作
+
+
 
 
 
@@ -98,8 +122,7 @@ const ipButton = document.querySelector('#ip-button');
 const mailButton = document.querySelector('#mail-button');
 const urlButton = document.querySelector('#url-button');
 
-
-currentButton.addEventListener('click', e=> {
+currentButton.addEventListener('click', e=> {  
   graph.query(MALWARE_ID);
 })
 ipButton.addEventListener('click', e => {
@@ -112,31 +135,8 @@ urlButton.addEventListener('click', e=>{
   graph.query('', mode=3);
 })
 
-
 function createG6Ins() {
   // create a g6 instance
-  G6.registerBehavior('node-activate', {
-    getDefaultCfg() {
-      return {
-        multiple: true
-      };
-    },
-    getEvents() {
-      return {
-        'node:mouseenter': 'onMouseenter'
-      };
-    },
-    onMouseenter(e) {
-      $('#proul').children().remove();
-      $('#proul').append(
-          '<ul class="pro_slider"><li><b>' + 'type' + ' : </b> ' +  e.item.getModel().type + '</li><br>')
-      $('#proul').append(
-          '<ul class="pro_slider"><li><b>' + 'Label' + ' : </b> ' +  e.item.getModel().label + '</li><br>')
-      $('#proul').append(
-          '<ul class="pro_slider"><li><b>' + 'ID' + ' : </b> ' +  e.item.getModel().id + '</li>')
-    },
-  });
-
   const graph = new G6.Graph({
     container: "mountNode",
     width: window.screen.availWidth,
@@ -178,6 +178,7 @@ function createG6Ins() {
       label: "node-label",
       labelCfg: {
         style: {
+          // fill: "#ddd",
           fill: "#434343",
           stroke: "",
         },
@@ -214,15 +215,15 @@ function createGraph() {
     let q = "";
     if (mode == 0) {
       q =
-          'MATCH p=(n{name:"' +
-          param +
-          '"})-[r:URL|Mail|IP]-(m) RETURN n,labels(n),r,type(r),m,labels(m) LIMIT 100';
+      'MATCH p=(n{name:"' +
+      param +
+      '"})-[r:URL|Mail|IP]-(m) RETURN n,labels(n),r,type(r),m,labels(m) LIMIT 100';    
     } else if (mode == 1) {
-      q = 'MATCH p=(n)-[r:IP]->(m) RETURN n,labels(n),r,type(r),m,labels(m) LIMIT 50';
+      q = 'MATCH p=(n)-[r:IP]-(m) RETURN n,labels(n),r,type(r),m,labels(m) LIMIT 50';
     } else if (mode == 2) {
-      q = 'MATCH p=(n)-[r:Mail]->(m) RETURN n,labels(n),r,type(r),m,labels(m) LIMIT 50';
+      q = 'MATCH p=(n)-[r:Mail]-(m) RETURN n,labels(n),r,type(r),m,labels(m) LIMIT 50';
     } else if (mode == 3){
-      q = 'MATCH p=(n)-[r:URL]->(m) RETURN n,labels(n),r,type(r),m,labels(m) LIMIT 50';
+      q = 'MATCH p=(n)-[r:URL]-(m) RETURN n,labels(n),r,type(r),m,labels(m) LIMIT 50';
     }else if (mode == 4) {
       q = 'MATCH p=(n:"' +
           param +
@@ -234,7 +235,7 @@ function createGraph() {
           param +
           '")<-[rb:"' +
           param +
-          '"]-(nb:Malware) return na,labels(na),ra,type(ra),nd,labels(nd),rb,type(rb),nb,labels(nb) LIMIT 50';
+          '"]-(nb:Malware) return na,labels(na),ra,type(ra),nd,labels(nd),rb,type(rb),nb,labels(nb)';
     }
     const res = await axios.get(`${URL}?query=${q}`);
     const data = transform(res);
@@ -269,11 +270,11 @@ function createGraph() {
       });
     }
 
-    function transform(res) {
+    function transform(res) {      
       // transform from res to G6 data
       // 格式转换, 从neo4j的返回数据格式映射到G6需要的数据格式
       nodes = [];
-      edges = [];
+      edges = [];    
 
       const records = res.data.records;
 
@@ -292,7 +293,7 @@ function createGraph() {
         nodes.push({
           id: cnt.toString(),
           label: record._fields[0].properties.name,
-          type: records[i]._fields[1][0],
+          type: records[i]._fields[1][0],    
         })
         mp[record._fields[0].properties.name] = cnt;
         cnt++;
@@ -304,20 +305,20 @@ function createGraph() {
         nodes.push({
           id: cnt.toString(),
           label: record._fields[4].properties.name,
-          type: records[i]._fields[5][0],
+          type: records[i]._fields[5][0],    
         })
         mp[record._fields[4].properties.name] = cnt;
         cnt++;
       }
 
-      // 找到所有边
+      // 找到所有边    
       for (let i = 0; i < records.length; i++) {
-        let record = records[i];
+        let record = records[i];                
         edges.push({
           source: mp[record._fields[0].properties.name].toString(),
           target: mp[record._fields[4].properties.name].toString(),
           label: record._fields[5][0]
-        })
+        })        
       }
 
       return {
