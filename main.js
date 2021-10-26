@@ -1,4 +1,3 @@
-const URL = new URLSearchParams(window.location.search).get("url"); // kg backend url
 const MALWARE_ID = new URLSearchParams(window.location.search).get("name");
 // G6s设置
 
@@ -65,7 +64,7 @@ window.onload = async function() {
 };
 
 async function getFromNeo4j(para) {
-  return await axios.get(`${URL}/all?query=${para}`)
+  return await axios.get(`/api/kg/all?query=${para}`)
 }
 
 async function getData(para) {
@@ -236,7 +235,7 @@ function createGraph() {
           param +
           '"]-(nb:Malware) return na,labels(na),ra,type(ra),nd,labels(nd),rb,type(rb),nb,labels(nb) LIMIT 50';
     }
-    const res = await axios.get(`${URL}?query=${q}`);
+    const res = await axios.get(`/api/kg/?query=${q}`);
     const data = transform(res);
     setStyle(data);
     g6ins.data(data);
